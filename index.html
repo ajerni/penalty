@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8" />
+<title>Soccer Penalty Shooter</title>
+
+<!-- zimjs.com - JavaScript Canvas Framework -->
+<script type="module">
+
+import zim from "https://zimjs.org/cdn/017/zim";
+
+new Frame(FIT, 1024, 768, light, dark, ready, "keeper1.png");
+function ready() {
+    // Background - grass field
+    new Rectangle(W, H, "#4CAF50").addTo();
+    
+    // Goal posts
+    const goalWidth = 400;
+    const goalHeight = 200;
+    const goal = new Container().addTo().pos(W/2, H/2);
+    
+    // Goal net - draw first
+    const net = new Shape().addTo(goal);
+    net.s("rgba(144,238,144,.8)"); // Light green color for net
+    
+    // Draw net
+    // Vertical lines
+    for (let x = 0; x <= goalWidth; x += 20) {
+        net.mt(x-goalWidth/2, -goalHeight/2).lt(x-goalWidth/2, goalHeight/2);
+    }
+    // Horizontal lines
+    for (let y = 0; y <= goalHeight; y += 20) {
+        net.mt(-goalWidth/2, y-goalHeight/2).lt(goalWidth/2, y-goalHeight/2);
+    }
+    
+    // White goal frame - draw second (behind net)
+    const goalFrame = new Rectangle(goalWidth, goalHeight, "white", black, 10)
+        .addTo(goal)
+        .pos(-goalWidth/4, -goalHeight/4)
+        .bot();
+    
+    // Goalkeeper
+    const keeper = new Pic("goalkeeper.png")
+        .addTo(goal)
+        .sca(.5)  // Scale the keeper - adjust this value as needed
+        .centerReg(goal); // Center the registration point
+    keeper.y = 0;
+    
+    // Ball
+    const ball = new Circle(20, "white", black, 2)
+        .addTo()
+        .pos(W/2, H-50);
+    
+    let shooting = false;
+    let scored = null;
+    
+    // Instructions
+    const instructions = new Label({
+        text:"PRESS SPACEBAR TO SHOOT!",
+        size:40,
+        color:white
+    }).addTo().pos(0, 150, CENTER);
+    
+    // Score display
+    let score = 0;
+    const scoreLabel = new Label({
+        text:"SCORE: 0",
+        size:30,
+        color:black
+    }).addTo().pos(50, 50);
+    
+    // Listen for spacebar and stage click/tap
+    F.on("keydown", (e) => {
+        if (e.keyCode == 32 && !shooting) { // Spacebar
+            shoot();
+        }
+    });
+    
+    // Add stage click/tap handler
+    S.on("mousedown", () => {
+        if (!shooting) {
+            shoot();
+        }
+    });
+    
+    // Extract shooting logic into a function
+    function shoot() {
+        shooting = true;
+        instructions.visible = false;
+        
+        // Random target position in goal
+        const targetX = rand(-goalWidth/3, goalWidth/3);
+        const targetY = rand(-goalHeight/3, goalHeight/3);
+        
+        // Move goalkeeper randomly
+        keeper.animate({
+            props:{x:rand(-goalWidth/3, goalWidth/3)},
+            time:.5
+        });
+        
+        // Shoot ball
+        ball.animate({
+            props:{
+                x:W/2 + targetX,
+                y:H/2 + targetY,
+                scale:.7
+            },
+            time:1,
+            call:() => {
+                // Check if goal scored (if ball is not too close to keeper)
+                if (ball.hitTestBounds(keeper)) {
+                    scored = false;
+                    new Label({
+                        text:"SAVED!",
+                        size:60,
+                        color:"red"
+                    }).center().animate({alpha:0}, 1);
+                } else {
+                    scored = true;
+                    score++;
+                    scoreLabel.text = "SCORE: " + score;
+                    new Label({
+                        text:"GOAL!",
+                        size:60,
+                        color:"green"
+                    }).center().animate({alpha:0}, 1);
+                }
+                
+                // Reset ball
+                timeout(1, () => {
+                    ball.animate({
+                        props:{
+                            x:W/2,
+                            y:H-50,
+                            scale:1
+                        },
+                        time:.5,
+                        call:() => {
+                            shooting = false;
+                            instructions.visible = true;
+                        }
+                    });
+                });
+            }
+        });
+    }
+}
+
+</script>
+<meta name="viewport" content="width=device-width, user-scalable=no" />
+</head>
+<body></body>
+</html>
